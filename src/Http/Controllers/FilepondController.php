@@ -29,8 +29,15 @@ class FilepondController extends BaseController
      */
     public function upload(Request $request)
     {
-        $input = $request->file(config('filepond.input_name'));
-        $file = is_array($input) ? $input[0] : $input;
+        foreach(config('filepond.input_names') as $inputName) {
+            if($request->hasFile($inputName)) {
+                $input = $request->file($inputName);
+                continue;
+            }
+        }
+
+        //$input = $request->file(config('filepond.input_name'));
+        //$file = is_array($input) ? $input[0] : $input;
         
         if($input === null){
             return Response::make(config('filepond.input_name'). ' is required', 422, [
@@ -38,10 +45,14 @@ class FilepondController extends BaseController
             ]);
         }
 
+        $file = is_array($input) ? $input[0] : $input;
+
         $tempPath = config('filepond.temporary_files_path');
 
-        $filePath = @tempnam($tempPath, 'laravel-filepond');
-        $filePath .= '.' . $file->getClientOriginalExtension();
+        $originNameInfo = pathinfo($file->getClientOriginalName());
+
+        $filePath = @tempnam($tempPath, $originNameInfo['filename'] . '--');
+        $filePath .= '.' . $originNameInfo['extension'];
 
         $filePathParts = pathinfo($filePath);
 
